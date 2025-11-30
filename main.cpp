@@ -8,12 +8,13 @@
 #include "server.h"
 
 int main(int argc, char* argv[]) {
-    // if (argc < 2) {
+    if (argc >1) {
     //     std::cout << "Not enough parameters!" << std::endl;
+        int mode = atoi(argv[1]);
     //     return 1;
-    // };
+    };
     
-    int mode = atoi(argv[1]);   
+       
     // std::string num2 = "";
 
     // if (mode==2)    // {    //};
@@ -35,7 +36,7 @@ int main(int argc, char* argv[]) {
     // ServerState udp_state;
     
     //int ret = server.prepareServer(&tcp_state, &udp_state);
-    int ret = server.prepareServer(8888, 8889);
+    int ret = server.prepareServer("127.0.0.1", 8887, 8889);
     if (ret==1){return 1;};
     
     // std::thread tcp_thread(&run_server, std::ref(tcp_state));
