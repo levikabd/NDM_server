@@ -1,6 +1,6 @@
 
 //#include <string>
-//#include <iostream>
+#include <iostream>
 //#include <thread>
 
 //#include <functional>
@@ -36,8 +36,8 @@ int main(int argc, char* argv[]) {
     // ServerState udp_state;
     
     //int ret = server.prepareServer(&tcp_state, &udp_state);
-    int ret = server.prepareServer("127.0.0.1", 8887, 8889);
-    if (ret==1){return 1;};
+    int ret = server.prepareServer("127.0.0.1", 8887, 8888);
+    if (ret==1){ std::cout << "NDM_server is DOWN. \n"; return 1;};
     
     // std::thread tcp_thread(&run_server, std::ref(tcp_state));
     // std::thread udp_thread(&run_server, std::ref(udp_state));
@@ -48,6 +48,8 @@ int main(int argc, char* argv[]) {
     //run_ndm_server(std::ref(tcp_state), std::ref(udp_state));
     //run_ndm_server(&tcp_state, &udp_state);
     server.run_ndm_server();
+
+    std::cout << "NDM_server DOWN. \n";
 
     return 0;
 };

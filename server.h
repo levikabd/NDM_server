@@ -5,8 +5,9 @@
 
 struct ServerState 
 {
-    int epoll_fd;
-    int listen_fd;
+    int epoll_fd=0;
+    int listen_fd=0;
+    int is_up=0;
 };
 
 class Server
@@ -22,6 +23,7 @@ private:
 
     epoll_event listen_events_tcp[1024];
     epoll_event listen_events_udp[1024];
+    int count=0;
 public:
     // Server(/* args */);
     // ~Server();

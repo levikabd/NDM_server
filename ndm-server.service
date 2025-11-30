@@ -1,0 +1,22 @@
+[Unit]
+Description=ndm-server
+Documentation=man:ndm-server
+After=network.target auditd.service
+ConditionPathExists=!/etc/ndm-server
+
+[Service]
+EnvironmentFile=
+ExecStartPre=
+ExecStart=/usr/sbin/ndm-server
+ExecReload=/usr/sbin/ndm-server
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+RestartPreventExitStatus=255
+Type=notify
+RuntimeDirectory=ndm-server
+RuntimeDirectoryMode=0755
+
+[Install]
+#WantedBy=multi-user.target
+#Alias=ndm-server.service

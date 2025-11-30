@@ -16,11 +16,14 @@
 #include <iostream>
 #include <sstream>
 
+#include <ctime>
+
 #include "server.h"
 
 // struct ServerState {
-//     int  epoll_fd;
-//     int  listen_fd;
+    // int epoll_fd=0;
+    // int listen_fd=0;
+    // int is_up=0;
 // };
 
 // class Server
@@ -36,23 +39,39 @@
 
 //     epoll_event listen_events_tcp[1024];
 //     epoll_event listen_events_udp[1024];
+//     int count=0;
 // // public:
 // //     // Server(/* args */);
 // //     // ~Server();
     void Server::show_time()
     {
         cmd="/time";
-        std::cout << "cmd /time \n";
+        //std::cout << "cmd /time \n";
 
+        // time_t t = time(0);  
+        // tm* now = localtime(&t);  
+        // char* buffer;  
 
+        time_t rawtime;
+        struct tm * timeinfo;
+        char buffer [80];                                // строка, в которой будет храниться текущее время
+        
+        time ( &rawtime );                               // текущая дата в секундах
+        timeinfo = localtime ( &rawtime );               // текущее локальное время, представленное в структуре
+        
+        // strftime (buffer,80,"Сейчас %I:%M%p.",timeinfo); // форматируем строку времени
+        // std::cout << buffer << std::endl;
+
+        strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);  
+        //strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", now);  
+        std::cout << "Current Date and Time: " << buffer << std::endl;
     };
 
     void Server::show_stats()
     {
         cmd="/stats";
-        std::cout << "cmd /stats \n";
-
-
+        //std::cout << "cmd /stats \n";
+        std::cout << "Number of connections: " << count << " \n";
     };
 
     void Server::cmd_shutdown()
@@ -64,10 +83,8 @@
 
     bool Server::determine_cmd(std::string data)
     {
-        //std::string data = "0" + in_data + "0";
+        
         std::cout << data << " \n";
-        //std::cout << data << " \n";
-        std::cout << data.size() << "\n";
         if (data.size()<1)
         {
             return false;
@@ -145,175 +162,22 @@
             close(sock);
             return -1;
         };
-        
+
+        std::cout << "TCP port ctreated. \n";
         // if (!is_udp){
             int resL = listen(sock, 10);
             if (resL==-1)
             {
                 std::cout << "ERROR listen TCP. \n";
+            }else{
+                tcp_state.is_up=1;                
             };
-        // };
-
-        std::cout << "TCP port ctreated. \n";
+        // };        
         
         return sock;
     };
 
-
-// static int make_socket_non_blocking(int sockFd)
-// {
-//   int getFlag, setFlag; 
-//   getFlag = fcntl(sockFd, F_GETFL, 0); 
-//   if(getFlag == -1)  {    perror("fnctl");    return -1;  }; 
-//   /* Set the Flag as Non Blocking Socket */
-//   getFlag |= O_NONBLOCK; 
-//   setFlag = fcntl(sockFd, F_GETFL, getFlag); 
-//   if(setFlag == -1)  {    perror("fnctl");    return -1;  };
-//   return 0;
-//};
-
     int Server::create_socket_udp(bool is_udp, int port) {
-        // int i, length, receivelen;
-        // /* Socket Parameters */
-        // int sockFd;
-        // int optval = 1;   // Socket Option Always = 1
-        // /* Server Address */
-        // struct sockaddr_in serverAddr, receivesocket;
-        // /* Epoll File Descriptor */
-        // int epollFd;      
-        // /* EPOLL Event structures */
-        // struct epoll_event  ev;                  
-        // struct epoll_event  events[1024];               
-        // int numEvents;                        
-        // int ctlFd; 
-        // // Step 1: First Create UDP Socket         
-        // /* Create UDP socket
-        // * socket(protocol_family, sock_type, IPPROTO_UDP);
-        // */
-        // sockFd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        // /* Check socket is successful or not */
-        // if (sockFd == -1)
-        // {
-        //     perror(" Create SockFd Fail \n");
-        //     return -1;
-        // };
-        // // Step 2: Make Socket as Non Blocking Socket.
-        // //         To handle multiple clients Asychronously, required to
-        // //         configure socket as Non Blocking socket
-        // /* Make Socket as Non Blocking Socket */
-        // make_socket_non_blocking(sockFd);
-        // // Step 3: Set socket options
-        // //    One can set different sock Options as RE-USE ADDR, 
-        // //    BROADCAST etc.        
-        // /*  In this Program, the socket is set to RE-USE ADDR
-        // *  So this gives flexibilty to other sockets to BIND to the 
-        //     same port Num */
-        // if(setsockopt(sockFd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval))== -1)
-        // {
-        //     perror("setsockopt Fail\n");
-        //     return -1;
-        // };
-        // // Step 4: Bind to the Recieve socket
-        // /* Bind to its own port Num  ( Listen on Port Number) */        
-        // /* Setup the addresses */        
-        // /* my address or Parameters
-        //     ( These are required for Binding the Port and IP Address )
-        //     Bind to my own port and Address */
-        // memset(&receivesocket, 0, sizeof(receivesocket));
-        // receivesocket.sin_family = AF_INET;
-        // receivesocket.sin_addr.s_addr = htonl(INADDR_ANY);
-        // receivesocket.sin_port = htons(port);
-        // receivelen = sizeof(receivesocket);
-        // /* Bind the my Socket */
-        // if (bind(sockFd, (struct sockaddr *) &receivesocket, receivelen) < 0)
-        // {
-        //     perror("bind");
-        //     return -1;
-        // };
-        // // EPOLL Implementation Starts
-        // // Step 5: Create Epoll Instance
-        // /* paramater is Optional */        
-        // epollFd = epoll_create(6);
-        // if(epollFd == -1)
-        // {
-        //     perror("epoll_create");
-        //     return -1;
-        // };
-        // /* Add the udp Sock File Descriptor to Epoll Instance */
-        // ev.data.fd = sockFd;        
-        // /* Events are Read Only and Edge-Triggered */
-        // ev.events = EPOLLIN | EPOLLET;        
-        // // Step 6: control interface for an epoll descriptor
-        // /* EPOLL_CTL_ADD
-        //     Register the target file descriptor fd on the epoll instance
-        //     referred to by the file descriptor epfd and
-        //     associate the event event with the internal file linked to fd.
-        // */
-        // /* Add the sock Fd to the EPOLL */
-        // ctlFd  = epoll_ctl(epollFd, EPOLL_CTL_ADD, sockFd, &ev);        
-        // if (ctlFd == -1)
-        // {
-        //     perror ("epoll_ctl");
-        //     return -1;
-        // };
-
-       
-
-        // int server_fd;
-        // struct sockaddr_in server_addr;
-        // // Создание сокета
-        // if ((server_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) 
-        // {
-        //     perror("socket creation failed");
-        //     exit(EXIT_FAILURE);
-        // };
-        // memset(&server_addr, 0, sizeof(server_addr));
-        // // Настройка адреса сервера
-        // server_addr.sin_family = AF_INET;
-        // server_addr.sin_addr.s_addr = inet_addr(ipaddress);
-        // server_addr.sin_port = htons(port);
-        // // Привязка сокета к адресу и порту
-        // if (bind(server_fd, (const struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) 
-        // {
-        //     perror("bind failed");
-        //     close(server_fd);
-        //     exit(EXIT_FAILURE);
-        // };
-
-        // //int server_fd;
-        // struct sockaddr_in server_addr;
-        // // Создание сокета
-        // int sock = socket(AF_INET, SOCK_DGRAM, 0);
-        // if ((sock) < 0) {
-        //     perror("socket creation failed");
-        //     exit(EXIT_FAILURE);
-        // };
-        // memset(&server_addr, 0, sizeof(server_addr));
-        // // Настройка адреса сервера
-        // server_addr.sin_family = AF_INET;
-        // server_addr.sin_addr.s_addr = inet_addr(ipaddress);
-        // server_addr.sin_port = htons(port);
-        // // Привязка сокета к адресу и порту
-        // if (bind(sock, (const struct sockaddr *)&server_addr, 
-        //     sizeof(server_addr)) < 0) {
-        //     perror("bind failed");
-        //     close(sock);
-        //     exit(EXIT_FAILURE);
-        // };
-
-
-            // udp_state.epoll_fd = epoll_create1(0);  
-            // // Настройка сокета на неблокирующий режим  
-            // int flags = fcntl(udp_state.listen_fd, F_GETFL, 0);  
-            // fcntl(udp_state.listen_fd, F_SETFL, flags | O_NONBLOCK);  
-            // // Добавление сокета UDP в epoll  
-            // struct epoll_event ev, events[1024];  
-            // ev.events = EPOLLIN;  
-            // ev.data.fd = udp_state.listen_fd;  
-            // if (epoll_ctl(udp_state.epoll_fd, EPOLL_CTL_ADD, udp_state.listen_fd, &ev) == -1) {  
-            //     perror("epoll_ctl");  
-            //     exit(EXIT_FAILURE);  
-            // };
             
         int type = SOCK_DGRAM;
         int sock = socket(AF_INET, type, 0);
@@ -341,15 +205,11 @@
             if (resL==-1)
             {
                 std::cout << "ERROR listen UDP. \n";
+            }else{
+                udp_state.is_up=1;
             };
-            //listen(server_fd, 10);
         // // };    
 
-    
-        //std::cout << sock << " \n";
-        
-        //return server_fd;
-        //return 0;
         return sock;
     };
 
@@ -391,6 +251,12 @@
 
     void Server::run_tcp()
     {
+        if (tcp_state.is_up!=1)
+        {
+            std::cout << "TCP DOWN. \n";
+            return;
+        };
+        
         while (status) 
         {
             int nfds_tcp = epoll_wait(tcp_state.epoll_fd, listen_events_tcp, 1024, -1); 
@@ -415,6 +281,7 @@
                         epoll_event client_event;
                         client_event.data.fd = client_fd;
                         client_event.events = EPOLLIN | EPOLLET;
+                        count++;
                         epoll_ctl(tcp_state.epoll_fd, EPOLL_CTL_ADD, client_fd, &client_event);
                     //};
                 } else {
@@ -443,6 +310,12 @@
 
     void Server::run_udp()
     {
+        if (udp_state.is_up!=1)
+        {
+            std::cout << "UDP DOWN. \n";
+            return;
+        };
+        
         while (status) 
         {
             int nfds_udp = epoll_wait(udp_state.epoll_fd, listen_events_udp, 1024, -1);    
@@ -454,6 +327,7 @@
             for (int i = 0; i < nfds_udp; ++i) {
                 int fd_udp = listen_events_udp[i].data.fd;                
                 if (fd_udp != udp_state.listen_fd) {
+                    count++;
                     // Входящие данные
                     char buffer[1024];
                     ssize_t bytes_read;
@@ -490,7 +364,6 @@
 
         if (tcp_thread.joinable()){tcp_thread.join(); }else{return 1;};
         if (udp_thread.joinable()){udp_thread.join(); }else{return 1;};
-        std::cout << "SERVER is DOWN! \n";
 
         close(tcp_state.epoll_fd);
         close(udp_state.epoll_fd);
