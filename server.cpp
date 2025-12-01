@@ -31,12 +31,10 @@
 // private:
 //     ServerState tcp_state;
 //     ServerState udp_state;
-   
 //     bool status=false;
 //     std::string cmd="";
 //     int port_tcp = 0, port_udp = 0;
 //     const char *ipaddress = "";
-
 //     epoll_event listen_events_tcp[1024];
 //     epoll_event listen_events_udp[1024];
 //     int count=0;
@@ -47,23 +45,14 @@
     {
         cmd="/time";
         //std::cout << "cmd /time \n";
-
-        // time_t t = time(0);  
-        // tm* now = localtime(&t);  
-        // char* buffer;  
-
         time_t rawtime;
         struct tm * timeinfo;
-        char buffer [80];                                // строка, в которой будет храниться текущее время
+        char buffer [80];                              
         
-        time ( &rawtime );                               // текущая дата в секундах
-        timeinfo = localtime ( &rawtime );               // текущее локальное время, представленное в структуре
-        
-        // strftime (buffer,80,"Сейчас %I:%M%p.",timeinfo); // форматируем строку времени
-        // std::cout << buffer << std::endl;
+        time ( &rawtime );                            
+        timeinfo = localtime ( &rawtime );       
 
         strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeinfo);  
-        //strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", now);  
         std::cout << "Current Date and Time: " << buffer << std::endl;
     };
 
@@ -83,7 +72,6 @@
 
     bool Server::determine_cmd(std::string data)
     {
-        
         std::cout << data << " \n";
         if (data.size()<1)
         {
@@ -101,25 +89,30 @@
     {
         int sz = data.size();
         //send(client_fd, data, len, 0);  
-        if (sz>=5)
-        {
+        if (sz>=5){
             if (data.substr(0, 5)=="/time")
             {
                 show_time();
+                return;
             };
         };
-                
-        if(data.substr(0, 6)=="/stats"){
-            show_stats();
-        }else if(data.substr(0, 9)=="/shutdown"){
-            cmd_shutdown();
-        }else{
-            
+               
+        if (sz>=6){
+            if(data.substr(0, 6)=="/stats"){
+                show_stats();
+                return;
+            };
+        };
+
+        if (sz>=9){
+            if(data.substr(0, 9)=="/shutdown"){
+                cmd_shutdown();
+                return;
+            };
         };
     };
 
-    void Server::handle_tcp_data(int client_fd, const char* data, size_t len) {
-        
+    void Server::handle_tcp_data(int client_fd, const char* data, size_t len) {        
         std::string s_data = data;
         //std::cout << data << " \n";
         if (determine_cmd(s_data))
@@ -164,21 +157,19 @@
         };
 
         std::cout << "TCP port ctreated. \n";
-        // if (!is_udp){
-            int resL = listen(sock, 10);
-            if (resL==-1)
-            {
-                std::cout << "ERROR listen TCP. \n";
-            }else{
-                tcp_state.is_up=1;                
-            };
-        // };        
+        int resL = listen(sock, 10);
+        if (resL==-1)
+        {
+            std::cout << "ERROR listen TCP. \n";
+        }else{
+            tcp_state.is_up=1;                
+        };
         
         return sock;
     };
 
     int Server::create_socket_udp(bool is_udp, int port) {
-            
+        is_udp = true;            
         int type = SOCK_DGRAM;
         int sock = socket(AF_INET, type, 0);
 
@@ -191,7 +182,6 @@
         addr.sin_family = AF_INET;
         addr.sin_port = htons(port);
         addr.sin_addr.s_addr = inet_addr(ipaddress);
-        //addr.sin_addr.s_addr = INADDR_ANY;
         
         if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
             perror("Error bind!");
@@ -200,15 +190,13 @@
         };
         
         std::cout << "UDP port ctreated. \n";   
-        // // if (!is_udp){
-            int resL = listen(sock, 10);
-            if (resL==-1)
-            {
-                std::cout << "ERROR listen UDP. \n";
-            }else{
-                udp_state.is_up=1;
-            };
-        // // };    
+        int resL = listen(sock, 10);
+        if (resL==-1)
+        {
+            std::cout << "ERROR listen UDP. \n";
+        }else{
+            udp_state.is_up=1;
+        };
 
         return sock;
     };
@@ -238,7 +226,6 @@
         epoll_event event_udp;        
         event_udp.data.fd = udp_state.listen_fd;
         event_udp.events = EPOLLIN;
-        //event_udp.events = EPOLLIN | EPOLLET;
         
         if (epoll_ctl(tcp_state.epoll_fd, EPOLL_CTL_ADD, tcp_state.listen_fd, &event_tcp) == -1) 
         {perror("ERROR add listen_fd, epoll_ctl TCP! "); return 1;};        
@@ -264,8 +251,6 @@
               
             if (nfds_tcp<1){continue;};
 
-            //std::cout << "revision of the list values... \n";
-            
             for (int i = 0; i < nfds_tcp; ++i)
             {
                 int fd_tcp = listen_events_tcp[i].data.fd;                
@@ -283,29 +268,24 @@
                         client_event.events = EPOLLIN | EPOLLET;
                         count++;
                         epoll_ctl(tcp_state.epoll_fd, EPOLL_CTL_ADD, client_fd, &client_event);
-                    //};
                 } else {
-                    // Входящие данные
                     char buffer[1024];
                     ssize_t bytes_read;                    
                     bytes_read = recv(fd_tcp, buffer, sizeof(buffer) - 1, 0);      
                     
                     if (bytes_read == 0) {
-                        // Клиент отключился
                         close(fd_tcp);
                         epoll_ctl(tcp_state.epoll_fd, EPOLL_CTL_DEL, fd_tcp, nullptr);
                         continue;
                     };
                     
                     buffer[bytes_read] = '\0';
-                    handle_tcp_data(fd_tcp, buffer, bytes_read);                    
-                    
+                    handle_tcp_data(fd_tcp, buffer, bytes_read);        
                 };
             };            
         };   
 
         std::cout << "TCP DOWN. \n";
-        //return true; 
     };
 
     void Server::run_udp()
@@ -323,12 +303,10 @@
  
             if (nfds_udp<1){continue;};
             
-            //std::cout << "revision of the list values... \n";
             for (int i = 0; i < nfds_udp; ++i) {
                 int fd_udp = listen_events_udp[i].data.fd;                
                 if (fd_udp != udp_state.listen_fd) {
                     count++;
-                    // Входящие данные
                     char buffer[1024];
                     ssize_t bytes_read;
                     
@@ -344,23 +322,15 @@
         };   
 
         std::cout << "UDP DOWN. \n"; 
-        //return true; 
     };
 
-    // void Server::run_ndm_server(ServerState* tcp_state, ServerState* udp_state) 
     int Server::run_ndm_server() 
     {
-        // epoll_event events_tcp[1024];
-        // epoll_event events_udp[1024];
-
-        //status=true;
         std::thread tcp_thread(&Server::run_tcp,this);
         std::thread udp_thread(&Server::run_udp,this);
         status=true;
 
         std::cout << "SERVER is RUN! \n";
-        // std::cout << tcp_state.epoll_fd << ", " << tcp_state.listen_fd << "; \n";
-        // std::cout << udp_state.epoll_fd << ", " << udp_state.listen_fd << ". \n";
 
         if (tcp_thread.joinable()){tcp_thread.join(); }else{return 1;};
         if (udp_thread.joinable()){udp_thread.join(); }else{return 1;};
