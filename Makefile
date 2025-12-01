@@ -1,6 +1,6 @@
-ndm_server: main.cpp server.cpp
-	g++ -o ndm_server main.cpp server.cpp
+ndm-server: main.cpp server.cpp
+	g++ -o ndm-server main.cpp server.cpp
 
 clean:
-	rm -rf *.o ndm_server
+	rm -rf *.o ndm-server
 
