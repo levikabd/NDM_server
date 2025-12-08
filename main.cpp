@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
     Server server;
 
     int ret = server.prepareServer("127.0.0.1", 8887, 8888);
-    if (ret==1){ std::cout << "NDM_server is DOWN. \n"; return 1;};
+    if (ret==1){ std::cerr << "NDM_server is DOWN. \n"; return 1;};
     
     server.run_ndm_server();
 

@@ -18,6 +18,8 @@
 
 #include <ctime>
 
+#include <csignal>
+
 #include "server.h"
 
 // struct ServerState {
@@ -38,6 +40,9 @@
 //     epoll_event listen_events_tcp[1024];
 //     epoll_event listen_events_udp[1024];
 //     int count=0;
+    // int conn_tcp = 0;
+    // int conn_udp = 0;
+    // void (*funcptr)(int);
 // // public:
 // //     // Server(/* args */);
 // //     // ~Server();
@@ -60,7 +65,9 @@
     {
         cmd="/stats";
         //std::cout << "cmd /stats \n";
-        std::cout << "Number of connections: " << count << " \n";
+
+        std::cout << "Total number of connections: " << count << " \n";
+        std::cout << "Number of active connections: " << (conn_tcp+conn_udp) << "\n";
     };
 
     void Server::cmd_shutdown()
@@ -69,6 +76,16 @@
         status = false;
         std::cout << "cmd /shutdown \n";
     };    
+
+    sighandler_t Server::terminate()
+    {
+        cmd="/shutdown";
+        status = false;    
+        
+        //exit(0);
+        sighandler_t trm;
+        return trm;
+    };
 
     bool Server::determine_cmd(std::string data)
     {
@@ -79,7 +96,7 @@
         };        
         if (data.substr(0,1)=="/")
         {
-            std::cout << "cmd! \n";
+            std::cout << "cmd! ... \n";
             return true;
         };
         return false;
@@ -160,7 +177,7 @@
         int resL = listen(sock, 10);
         if (resL==-1)
         {
-            std::cout << "ERROR listen TCP. \n";
+            std::cerr << "ERROR listen TCP. \n";
         }else{
             tcp_state.is_up=1;                
         };
@@ -193,7 +210,7 @@
         int resL = listen(sock, 10);
         if (resL==-1)
         {
-            std::cout << "ERROR listen UDP. \n";
+            std::cerr << "ERROR listen UDP. \n";
         }else{
             udp_state.is_up=1;
         };
@@ -240,13 +257,15 @@
     {
         if (tcp_state.is_up!=1)
         {
-            std::cout << "TCP DOWN. \n";
+            std::cerr << "TCP DOWN. \n";
+            conn_tcp=0;
             return;
         };
         
         while (status) 
         {
             int nfds_tcp = epoll_wait(tcp_state.epoll_fd, listen_events_tcp, 1024, -1); 
+            conn_tcp=nfds_tcp;
             //std::cout << nfds_tcp << " tcp's... \n";
               
             if (nfds_tcp<1){continue;};
@@ -282,7 +301,9 @@
                     buffer[bytes_read] = '\0';
                     handle_tcp_data(fd_tcp, buffer, bytes_read);        
                 };
-            };            
+            };  
+            
+            funcptr = signal (SIGTERM, terminate());
         };   
 
         std::cout << "TCP DOWN. \n";
@@ -292,13 +313,15 @@
     {
         if (udp_state.is_up!=1)
         {
-            std::cout << "UDP DOWN. \n";
+            std::cerr << "UDP DOWN. \n";
+            conn_udp=0;
             return;
         };
         
         while (status) 
         {
-            int nfds_udp = epoll_wait(udp_state.epoll_fd, listen_events_udp, 1024, -1);    
+            int nfds_udp = epoll_wait(udp_state.epoll_fd, listen_events_udp, 1024, -1);  
+            conn_udp=nfds_udp;  
             //std::cout << nfds_udp << " udp's... \n";
  
             if (nfds_udp<1){continue;};
@@ -319,6 +342,7 @@
                     };
                 };
             };
+            funcptr = signal (SIGTERM, terminate());
         };   
 
         std::cout << "UDP DOWN. \n"; 

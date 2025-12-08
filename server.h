@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <string>
 
+#include <csignal>
+
 struct ServerState 
 {
     int epoll_fd=0;
@@ -24,6 +26,11 @@ private:
     epoll_event listen_events_tcp[1024];
     epoll_event listen_events_udp[1024];
     int count=0;
+
+    int conn_tcp = 0;
+    int conn_udp = 0;
+
+    void (*funcptr)(int);  
 public:
     // Server(/* args */);
     // ~Server();
@@ -32,6 +39,8 @@ public:
     void show_stats();
 
     void cmd_shutdown();
+
+    sighandler_t terminate();
 
     bool determine_cmd(std::string data);
 
