@@ -80,7 +80,9 @@
     sighandler_t Server::terminate()
     {
         cmd="/shutdown";
-        status = false;    
+        status = false;   
+        
+        std::cout << "TERM signal! \n";
         
         //exit(0);
         sighandler_t trm;
@@ -220,36 +222,36 @@
 
     int Server::prepareServer(const char* hostadress, int p_tcp, int p_udp)
     {
-        tcp_state.epoll_fd = epoll_create1(0);
-        udp_state.epoll_fd = epoll_create1(0);
-        
-        if(tcp_state.epoll_fd == -1){perror("ERROR epoll create TCP!"); return 1;};    
-        if(udp_state.epoll_fd == -1){perror("ERROR epoll create UDP!"); return 1;};
-
         ipaddress=hostadress;
+
+        //TCP
+        tcp_state.epoll_fd = epoll_create1(0);
+        if(tcp_state.epoll_fd == -1){perror("ERROR epoll create TCP!"); return 1;}; 
         port_tcp=p_tcp;
-        port_udp=p_udp;
-
         tcp_state.listen_fd = create_socket_tcp(false, port_tcp);
-        udp_state.listen_fd = create_socket_udp(true, port_udp);
-        
-        if(tcp_state.listen_fd == -1){return 1;};        
-        if(udp_state.listen_fd == -1){return 1;}
-
+        if(tcp_state.listen_fd == -1){return 1;};  
         epoll_event event_tcp;
         event_tcp.data.fd = tcp_state.listen_fd;
         event_tcp.events = EPOLLIN | EPOLLET;
+        if (epoll_ctl(tcp_state.epoll_fd, EPOLL_CTL_ADD, tcp_state.listen_fd, &event_tcp) == -1) 
+        {perror("ERROR add listen_fd, epoll_ctl TCP! "); return 1;}; 
+        std::cout << "TCP prepare OK.\n";
 
+        udp_state.epoll_fd = epoll_create1(0);           
+        if(udp_state.epoll_fd == -1){perror("ERROR epoll create UDP!"); return 1;};
+        port_udp=p_udp;
+        udp_state.listen_fd = create_socket_udp(true, port_udp);
+        if(udp_state.listen_fd == -1){
+            std::cerr << "UDP create ERR!\n";
+            return 1;
+        };
         epoll_event event_udp;        
         event_udp.data.fd = udp_state.listen_fd;
-        event_udp.events = EPOLLIN;
-        
-        if (epoll_ctl(tcp_state.epoll_fd, EPOLL_CTL_ADD, tcp_state.listen_fd, &event_tcp) == -1) 
-        {perror("ERROR add listen_fd, epoll_ctl TCP! "); return 1;};        
-
+        event_udp.events = EPOLLIN;        
         if (epoll_ctl(udp_state.epoll_fd, EPOLL_CTL_ADD, udp_state.listen_fd, &event_udp) == -1) 
-        {perror("ERROR add listen_fd, epoll_ctl UDP! "); return 1;};
-
+        {perror("ERROR add listen_fd, epoll_ctl UDP! "); return 1;};         
+        std::cout << "UDP prepare OK.\n";
+        
         return 0;
     };
 
@@ -268,7 +270,10 @@
             conn_tcp=nfds_tcp;
             //std::cout << nfds_tcp << " tcp's... \n";
               
-            if (nfds_tcp<1){continue;};
+            if (nfds_tcp<1){
+                std::cerr << "TCP epoll_wait() return -1! \n"; 
+                continue;
+            };
 
             for (int i = 0; i < nfds_tcp; ++i)
             {
@@ -324,7 +329,9 @@
             conn_udp=nfds_udp;  
             //std::cout << nfds_udp << " udp's... \n";
  
-            if (nfds_udp<1){continue;};
+            if (nfds_udp<1){
+                std::cerr << "UDP epoll_wait() return -1! \n"; 
+                continue;};
             
             for (int i = 0; i < nfds_udp; ++i) {
                 int fd_udp = listen_events_udp[i].data.fd;                
@@ -354,7 +361,8 @@
         std::thread udp_thread(&Server::run_udp,this);
         status=true;
 
-        std::cout << "SERVER is RUN! \n";
+        std::cout << "SERVER is RUN! IP: " << ipaddress << ", TCP: " << port_tcp << ", UDP: " << port_udp << " \n";
+
 
         if (tcp_thread.joinable()){tcp_thread.join(); }else{return 1;};
         if (udp_thread.joinable()){udp_thread.join(); }else{return 1;};
