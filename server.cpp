@@ -22,6 +22,9 @@
 
 #include "server.h"
 
+bool status=false;
+std::string cmd="";
+
 // struct ServerState {
     // int epoll_fd=0;
     // int listen_fd=0;
@@ -77,10 +80,11 @@
         std::cout << "cmd /shutdown \n";
     };    
 
-    sighandler_t Server::terminate()
+    //sighandler_t Server::terminate(int signum)
+    void terminate(int signum)
     {
-        sighandler_t trm;
-        return trm;
+        //sighandler_t trm;
+        //return trm;
 
         cmd="/shutdown";
         status = false;   
@@ -88,7 +92,7 @@
         std::cout << "TERM signal! \n";
         
         //exit(0);
-        return trm;
+        //return trm;
     };
 
     bool Server::determine_cmd(std::string data)
@@ -331,7 +335,7 @@
                 };
             };  
             
-            funcptr = signal (SIGTERM, terminate());
+            funcptr = signal(SIGTERM, terminate);
         };   
 
         std::cout << "TCP DOWN. \n";
@@ -362,8 +366,6 @@
                 };   
                 continue;
             };
-            
-            //std::cout << "Attention! We're reading...";    
 
             for (int i = 0; i < nfds_udp; i++) {
                 int fd_udp = listen_events_udp[i].data.fd;                
@@ -382,7 +384,7 @@
                     handle_udp_data(fd_udp, buffer, bytes_read, &client_addr);                    
                 };
             };
-            funcptr = signal(SIGTERM, terminate());
+            funcptr = signal(SIGTERM, terminate);
         };   
 
         std::cout << "UDP DOWN. \n"; 

@@ -18,8 +18,8 @@ private:
     ServerState tcp_state;
     ServerState udp_state;
    
-    bool status=false;
-    std::string cmd="";
+    // bool status=false;
+    // std::string cmd="";
     int port_tcp = 0, port_udp = 0;
     const char *ipaddress = "";
 
@@ -40,7 +40,7 @@ public:
 
     void cmd_shutdown();
 
-    sighandler_t terminate();
+    //sighandler_t terminate(int signum);
 
     bool determine_cmd(std::string data);
 
