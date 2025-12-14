@@ -1,6 +1,37 @@
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/io.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include <iostream>
+
 #include "server.h"
+
+bool daemonize()
+{
+    pid_t pid = fork();
+    if (pid < 0) {        return false;};
+    if (pid > 0) {        _exit(EXIT_SUCCESS);};
+
+    if (setsid() < 0) {        return false;};
+
+    pid = fork();
+    if (pid < 0) {        return false;};
+    if (pid > 0) {        _exit(EXIT_SUCCESS);};
+
+    umask(0);
+
+    if (chdir("/") < 0) {        return false;};
+
+    for (int i = sysconf(_SC_OPEN_MAX); i >= 0; i--) {        close(i);};
+
+    open("/dev/null", O_RDONLY); 
+    open("/dev/null", O_WRONLY);
+    dup2(1, 2);
+
+    return true;
+};
 
 int main(int argc, char* argv[]) {
     // if (argc >1) {
@@ -18,6 +49,11 @@ int main(int argc, char* argv[]) {
     //     std::cerr << "Ошибка: " << e.what() << std::endl;
     //     return 1;
     // };
+
+    if (!daemonize()) {
+        std::cerr << "The demonization error!" << std::endl;
+        return 1;
+    };
 
     Server server;
 

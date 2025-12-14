@@ -25,6 +25,15 @@
 bool status=false;
 std::string cmd="";
 
+void signalHandler(int signum) {
+    if (signum == SIGTERM || signum == SIGINT) 
+    {        
+        std::cout << "TERM signal! \n";
+        cmd="/shutdown";        
+        status = false;                
+    };
+};
+
 // struct ServerState {
     // int epoll_fd=0;
     // int listen_fd=0;
@@ -79,21 +88,6 @@ std::string cmd="";
         status = false;
         std::cout << "cmd /shutdown \n";
     };    
-
-    //sighandler_t Server::terminate(int signum)
-    void terminate(int signum)
-    {
-        //sighandler_t trm;
-        //return trm;
-
-        cmd="/shutdown";
-        status = false;   
-        
-        std::cout << "TERM signal! \n";
-        
-        //exit(0);
-        //return trm;
-    };
 
     bool Server::determine_cmd(std::string data)
     {
@@ -335,7 +329,7 @@ std::string cmd="";
                 };
             };  
             
-            funcptr = signal(SIGTERM, terminate);
+            funcptr = signal(SIGTERM, signalHandler);
         };   
 
         std::cout << "TCP DOWN. \n";
@@ -384,7 +378,7 @@ std::string cmd="";
                     handle_udp_data(fd_udp, buffer, bytes_read, &client_addr);                    
                 };
             };
-            funcptr = signal(SIGTERM, terminate);
+            funcptr = signal(SIGTERM, signalHandler);
         };   
 
         std::cout << "UDP DOWN. \n"; 
@@ -392,6 +386,11 @@ std::string cmd="";
 
     int Server::run_ndm_server() 
     {
+        signal(SIGTERM, signalHandler);
+        signal(SIGINT, signalHandler);
+        signal(SIGHUP, SIG_IGN);
+        signal(SIGCHLD, SIG_IGN);
+
         std::thread tcp_thread(&Server::run_tcp,this);
         std::thread udp_thread(&Server::run_udp,this);
         status=true;

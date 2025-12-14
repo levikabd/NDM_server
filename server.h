@@ -39,9 +39,7 @@ public:
     void show_stats();
 
     void cmd_shutdown();
-
-    //sighandler_t terminate(int signum);
-
+    
     bool determine_cmd(std::string data);
 
     void handle_dt(std::string data, size_t len);
