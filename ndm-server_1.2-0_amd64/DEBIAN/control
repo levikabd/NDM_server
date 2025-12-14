@@ -1,5 +1,5 @@
 Package: ndm-server
-Version: 1.0-1
+Version: 1.2-0
 Architecture: amd64
 Maintainer: LEV<levikabd@yandex.ru>
 Description: A C++ server application for GNU/Linux that asynchronously processes TCP and UDP client connections using an epoll-based multiplexing mechanism.
