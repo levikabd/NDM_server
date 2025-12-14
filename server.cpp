@@ -79,13 +79,15 @@
 
     sighandler_t Server::terminate()
     {
+        sighandler_t trm;
+        return trm;
+
         cmd="/shutdown";
         status = false;   
         
         std::cout << "TERM signal! \n";
         
         //exit(0);
-        sighandler_t trm;
         return trm;
     };
 
@@ -158,7 +160,7 @@
         int type = is_udp ? SOCK_DGRAM : SOCK_STREAM;
         int sock = socket(AF_INET, type, 0);
 
-        if (sock < 0){perror("Error create socket!"); return -1;};
+        if (sock < 0){perror("TCP error create socket!"); return -1;};
         
         int opt = 1;
         setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -170,7 +172,7 @@
         //addr.sin_addr.s_addr = INADDR_ANY;
         
         if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-            perror("Error bind!");
+            perror("Error bind TCP!");
             close(sock);
             return -1;
         };
@@ -192,7 +194,7 @@
         int type = SOCK_DGRAM;
         int sock = socket(AF_INET, type, 0);
 
-        if (sock < 0){perror("Error create socket!"); return -1;};
+        if (sock < 0){perror("UDP error create socket!"); return -1;};
         
         int opt = 1;
         setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
@@ -203,19 +205,22 @@
         addr.sin_addr.s_addr = inet_addr(ipaddress);
         
         if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-            perror("Error bind!");
+            perror("UDP error bind!");
             close(sock);
             return -1;
         };
         
+        int flags = fcntl(udp_state.listen_fd, F_GETFL, 0);
+        fcntl(udp_state.listen_fd, F_SETFL, flags | O_NONBLOCK);
+
         std::cout << "UDP port ctreated. \n";   
-        int resL = listen(sock, 10);
-        if (resL==-1)
-        {
-            std::cerr << "ERROR listen UDP. \n";
-        }else{
+        // int resL = listen(sock, 10);
+        // if (resL==-1)
+        // {
+        //     std::cerr << "ERROR listen UDP. \n";
+        // }else{
             udp_state.is_up=1;
-        };
+        // };
 
         return sock;
     };
@@ -234,22 +239,29 @@
         event_tcp.data.fd = tcp_state.listen_fd;
         event_tcp.events = EPOLLIN | EPOLLET;
         if (epoll_ctl(tcp_state.epoll_fd, EPOLL_CTL_ADD, tcp_state.listen_fd, &event_tcp) == -1) 
-        {perror("ERROR add listen_fd, epoll_ctl TCP! "); return 1;}; 
+        {
+            perror("ERROR add listen_fd, epoll_ctl TCP! "); 
+            close(tcp_state.epoll_fd);
+            close(tcp_state.listen_fd);            
+            return 1;
+        }; 
         std::cout << "TCP prepare OK.\n";
 
         udp_state.epoll_fd = epoll_create1(0);           
         if(udp_state.epoll_fd == -1){perror("ERROR epoll create UDP!"); return 1;};
         port_udp=p_udp;
         udp_state.listen_fd = create_socket_udp(true, port_udp);
-        if(udp_state.listen_fd == -1){
-            std::cerr << "UDP create ERR!\n";
-            return 1;
-        };
+        if(udp_state.listen_fd == -1){            std::cerr << "UDP create ERROR!\n";            return 1;        };
         epoll_event event_udp;        
         event_udp.data.fd = udp_state.listen_fd;
         event_udp.events = EPOLLIN;        
         if (epoll_ctl(udp_state.epoll_fd, EPOLL_CTL_ADD, udp_state.listen_fd, &event_udp) == -1) 
-        {perror("ERROR add listen_fd, epoll_ctl UDP! "); return 1;};         
+        {
+            perror("ERROR add listen_fd, epoll_ctl UDP! "); 
+            close(udp_state.epoll_fd);
+            close(udp_state.listen_fd);            
+            return 1;
+        };         
         std::cout << "UDP prepare OK.\n";
         
         return 0;
@@ -266,16 +278,27 @@
         
         while (status) 
         {
-            int nfds_tcp = epoll_wait(tcp_state.epoll_fd, listen_events_tcp, 1024, -1); 
+            int nfds_tcp = epoll_wait(tcp_state.epoll_fd, listen_events_tcp, 1024, 900); 
             conn_tcp=nfds_tcp;
             //std::cout << nfds_tcp << " tcp's... \n";
               
             if (nfds_tcp<1){
-                std::cerr << "TCP epoll_wait() return -1! \n"; 
-                continue;
+                // if (nfds_tcp==0)
+                // {
+                //     //std::cerr << "TCP epoll_wait() return -1! \n"; 
+                //     continue;
+                // };
+                if (nfds_tcp==-1)
+                {
+                    if (errno!=EINTR)
+                    {
+                        std::cerr << "TCP epoll_wait() return -1! \n"; 
+                    };
+                };   
+                continue;             
             };
 
-            for (int i = 0; i < nfds_tcp; ++i)
+            for (int i = 0; i < nfds_tcp; i++)
             {
                 int fd_tcp = listen_events_tcp[i].data.fd;                
                 if (fd_tcp == tcp_state.listen_fd)
@@ -325,31 +348,41 @@
         
         while (status) 
         {
-            int nfds_udp = epoll_wait(udp_state.epoll_fd, listen_events_udp, 1024, -1);  
+            int nfds_udp = epoll_wait(udp_state.epoll_fd, listen_events_udp, 1024, 900);  
             conn_udp=nfds_udp;  
             //std::cout << nfds_udp << " udp's... \n";
  
             if (nfds_udp<1){
-                std::cerr << "UDP epoll_wait() return -1! \n"; 
-                continue;};
+                if (nfds_udp==-1)
+                {
+                    if (errno!=EINTR)
+                    {
+                        std::cerr << "TCP epoll_wait() return -1! \n"; 
+                    };
+                };   
+                continue;
+            };
             
-            for (int i = 0; i < nfds_udp; ++i) {
+            //std::cout << "Attention! We're reading...";    
+
+            for (int i = 0; i < nfds_udp; i++) {
                 int fd_udp = listen_events_udp[i].data.fd;                
-                if (fd_udp != udp_state.listen_fd) {
+                if (fd_udp == udp_state.listen_fd) {
                     count++;
-                    char buffer[1024];
-                    ssize_t bytes_read;
-                    
+                    char buffer[1024];                   
                     struct sockaddr_in client_addr;
                     socklen_t addrlen = sizeof(client_addr);
-                    bytes_read = recvfrom(fd_udp, buffer, sizeof(buffer) - 1, 0, (struct sockaddr*)&client_addr, &addrlen);                            
-                    if (bytes_read > 0) {
-                        buffer[bytes_read] = '\0';
-                        handle_udp_data(fd_udp, buffer, bytes_read, &client_addr);
-                    };
+                    
+                    ssize_t bytes_read = recvfrom(fd_udp, buffer, 1024, 0, (struct sockaddr*)&client_addr, &addrlen);                            
+                    //ssize_t bytes_read = recvfrom(fd_udp, buffer, sizeof(buffer) - 1, 0, (struct sockaddr*)&client_addr, &addrlen);                            
+                    
+                    if (bytes_read < 1){ std::cerr << "UDP read<1!"; continue;};
+                    //std::cout << "UDP read>0!";
+					//buffer[bytes_read] = '\0';
+                    handle_udp_data(fd_udp, buffer, bytes_read, &client_addr);                    
                 };
             };
-            funcptr = signal (SIGTERM, terminate());
+            funcptr = signal(SIGTERM, terminate());
         };   
 
         std::cout << "UDP DOWN. \n"; 
