@@ -1,4 +1,3 @@
-
 #include <sys/epoll.h>
 #include <sys/socket.h>
 
@@ -15,9 +14,9 @@
 
 #include <iostream>
 #include <sstream>
+#include <fstream>
 
 #include <ctime>
-
 #include <csignal>
 
 #include "server.h"
@@ -31,6 +30,51 @@ void signalHandler(int signum) {
         std::cout << "TERM signal! \n";
         cmd="/shutdown";        
         status = false;                
+    };
+};
+
+bool createPidFile(const std::string& filename) {
+    pid_t pid = getpid();
+    
+    if (access(filename.c_str(), F_OK) == 0) {
+        std::cerr << "The PID file already exists: " << filename << std::endl;
+        return false;
+    };
+    
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error when creating the file: " << filename << std::endl;
+        return false;
+    };
+    
+    file << pid;
+    if (file.fail()) {
+        std::cerr << "Error when writing to a file: " << filename << std::endl;
+        return false;
+    };
+    
+    file.close();
+    return true;
+};
+
+bool removePidFile(const std::string& filename) {
+    if (access(filename.c_str(), F_OK) == -1) {
+        std::cerr << "The PID file does not exist: " << filename << std::endl;
+        return false;
+    };
+
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error opening the PID file: " << filename << std::endl;
+        return false;
+    };
+
+    if (remove(filename.c_str()) == 0) {
+        std::cout << "The PID file has been successfully deleted: " << filename << std::endl;
+        return true;
+    } else {
+        std::cerr << "Error deleting the PID file: " << errno << std::endl;
+        return false;
     };
 };
 
@@ -386,6 +430,14 @@ void signalHandler(int signum) {
 
     int Server::run_ndm_server() 
     {
+        std::string pidFilename = "/run/ndm-server.pid";        
+        if (createPidFile(pidFilename)) {
+            std::cout << "The PID file has been created successfully:" << pidFilename << std::endl;
+        } else {
+            std::cerr << "Failed to create a PID file! " << std::endl;
+            return 1;
+        };     
+        
         signal(SIGTERM, signalHandler);
         signal(SIGINT, signalHandler);
         signal(SIGHUP, SIG_IGN);
@@ -403,6 +455,8 @@ void signalHandler(int signum) {
 
         close(tcp_state.epoll_fd);
         close(udp_state.epoll_fd);
+
+        removePidFile(pidFilename);
 
         return 0;
     };
