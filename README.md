@@ -2,6 +2,8 @@ A C/C++ server application for GNU/Linux that asynchronously
 processes TCP and UDP client connections using 
 multiplexing mechanism (based on epoll).
 
+System requirements: unix / linux / debian.
+
 Download from the link
 https://github.com/levikabd/NDM_server/archive/refs/heads/main.zip
 
