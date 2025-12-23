@@ -38,15 +38,15 @@ run #3:
 "sudo ndm-server"
 
 monitoring:
-"sudo netstat -tulnp | grep :8887"
-"sudo netstat -tulnp | grep :8887"
+sudo netstat -tulnp | grep :8887
+sudo netstat -tulnp | grep :8887
 
 run test:
-"echo test > /dev/udp/127.0.0.1/8888"
-"echo test > /dev/tcp/127.0.0.1/8887"
-"echo /time > /dev/udp/127.0.0.1/8888"
-"echo /time > /dev/tcp/127.0.0.1/8887"
-"echo /stats > /dev/udp/127.0.0.1/8888"
-"echo /stats > /dev/tcp/127.0.0.1/8887"
-"echo /shutdown > /dev/udp/127.0.0.1/8888"
-"echo /shutdown > /dev/tcp/127.0.0.1/8887"
+echo test > /dev/udp/127.0.0.1/8888
+echo test > /dev/tcp/127.0.0.1/8887
+echo /time > /dev/udp/127.0.0.1/8888
+echo /time > /dev/tcp/127.0.0.1/8887
+echo /stats > /dev/udp/127.0.0.1/8888
+echo /stats > /dev/tcp/127.0.0.1/8887
+echo /shutdown > /dev/udp/127.0.0.1/8888
+echo /shutdown > /dev/tcp/127.0.0.1/8887
