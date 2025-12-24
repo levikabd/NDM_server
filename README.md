@@ -11,8 +11,11 @@ System requirements: unix / linux / debian.
 TCP and UDP protocols work.
 
 * Built-in commands:
+
 /time - return current server time;
+
 /stats - show connection statistics;
+
 /shutdown - stop the server;
 
 Echo mode for all non-command messages.
